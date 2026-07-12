@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculator</title>
+    <style>
+        /* Basic styling for the calculator */
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+        .calculator {
+            width: 300px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        .display {
+            width: 100%;
+            height: 50px;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            text-align: right;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background: #f9f9f9;
+        }
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+        button {
+            height: 50px;
+            font-size: 1.2rem;
+            border: none;
+            border-radius: 5px;
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .wide {
+            grid-column: span 2;
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator">
+        <!-- Display for the calculator -->
+        <input type="text" id="display" class="display" disabled>
+
+        <!-- Buttons for the calculator -->
+        <div class="buttons">
+            <!-- Number buttons -->
+            <button onclick="appendNumber('7')">7</button>
+            <button onclick="appendNumber('8')">8</button>
+            <button onclick="appendNumber('9')">9</button>
+            <button onclick="setOperation('/')">/</button>
+
+            <button onclick="appendNumber('4')">4</button>
+            <button onclick="appendNumber('5')">5</button>
+            <button onclick="appendNumber('6')">6</button>
+            <button onclick="setOperation('*')">*</button>
+
+            <button onclick="appendNumber('1')">1</button>
+            <button onclick="appendNumber('2')">2</button>
+            <button onclick="appendNumber('3')">3</button>
+            <button onclick="setOperation('-')">-</button>
+
+            <button onclick="appendNumber('0')">0</button>
+            <button onclick="appendDot()">.</button>
+            <button onclick="calculate()" class="wide">=</button>
+            <button onclick="setOperation('+')">+</button>
+
+            <!-- Advanced operations -->
+            <button onclick="clearDisplay()" class="wide">C</button>
+            <button onclick="calculateSquareRoot()">√</button>
+            <button onclick="calculatePower()">x²</button>
+            <button onclick="calculateReciprocal()">1/x</button>
+        </div>
+    </div>
+
+    <script>
+        // Variables to store the current input, previous input, and the selected operation
+        let currentInput = '';
+        let previousInput = '';
+        let operation = null;
+
+        // Function to append a number to the display
+        function appendNumber(number) {
+            currentInput += number;
+            updateDisplay();
+        }
+
+        // Function to append a decimal point
+        function appendDot() {
+            if (!currentInput.includes('.')) {
+                currentInput += '.';
+                updateDisplay();
+            }
+        }
+
+        // Function to set the operation
+        function setOperation(op) {
+            if (currentInput === '') return;
+            if (previousInput !== '') calculate();
+            operation = op;
+            previousInput = currentInput;
+            currentInput = '';
+        }
+
+        // Function to calculate the result
+        function calculate() {
+            if (operation === null || currentInput === '') return;
+            const prev = parseFloat(previousInput);
+            const curr = parseFloat(currentInput);
+            let result;
+
+            switch (operation) {
+                case '+':
+                    result = prev + curr;
+                    break;
+                case '-':
+                    result = prev - curr;
+                    break;
+                case '*':
+                    result = prev * curr;
+                    break;
+                case '/':
+                    result = prev / curr;
+                    break;
+                default:
+                    return;
+            }
+
+            currentInput = result.toString();
+            operation = null;
+            previousInput = '';
+            updateDisplay();
+        }
+
+        // Function to clear the display
+        function clearDisplay() {
+            currentInput = '';
+            previousInput = '';
+            operation = null;
+            updateDisplay();
+        }
+
+        // Function to calculate the square root
+        function calculateSquareRoot() {
+            if (currentInput === '') return;
+            currentInput = Math.sqrt(parseFloat(currentInput)).toString();
+            updateDisplay();
+        }
+
+        // Function to calculate the square
+        function calculatePower() {
+            if (currentInput === '') return;
+            currentInput = Math.pow(parseFloat(currentInput), 2).toString();
+            updateDisplay();
+        }
+
+        // Function to calculate the reciprocal
+        function calculateReciprocal() {
+            if (currentInput === '') return;
+            currentInput = (1 / parseFloat(currentInput)).toString();
+            updateDisplay();
+        }
+
+        // Function to update the display
+        function updateDisplay() {
+            document.getElementById('display').value = currentInput;
+        }
+    </script>
+</body>
+</html>
