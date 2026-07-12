@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"> <!-- Specifies the character encoding for the document -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Ensures proper rendering on mobile devices -->
+    <title>Tic Tac Toe</title> <!-- Sets the title of the webpage -->
+    <style>
+        body {
+            font-family: Arial, sans-serif; /* Sets the font for the body */
+            display: flex; /* Enables flexbox layout */
+            justify-content: center; /* Centers content horizontally */
+            align-items: center; /* Centers content vertically */
+            height: 100vh; /* Sets the height to fill the viewport */
+            margin: 0; /* Removes default margin */
+            background-color: #f4f4f4; /* Sets background color */
+        }
+        .container {
+            text-align: center; /* Centers text inside the container */
+        }
+        .board {
+            display: grid; /* Enables grid layout */
+            grid-template-columns: repeat(3, 100px); /* Creates 3 columns of 100px each */
+            grid-template-rows: repeat(3, 100px); /* Creates 3 rows of 100px each */
+            gap: 5px; /* Adds spacing between grid items */
+            margin: 20px auto; /* Centers the board and adds margin */
+        }
+        .cell {
+            width: 100px; /* Sets cell width */
+            height: 100px; /* Sets cell height */
+            display: flex; /* Enables flexbox for centering content */
+            justify-content: center; /* Centers content horizontally */
+            align-items: center; /* Centers content vertically */
+            font-size: 2rem; /* Sets font size */
+            font-weight: bold; /* Makes text bold */
+            background-color: #fff; /* Sets background color */
+            border: 2px solid #000; /* Adds a black border */
+            cursor: pointer; /* Changes cursor to pointer on hover */
+        }
+        .cell.taken {
+            pointer-events: none; /* Disables clicks on already taken cells */
+        }
+        .status {
+            font-size: 1.5rem; /* Sets font size for the status text */
+            margin-bottom: 10px; /* Adds margin below the status text */
+        }
+        .reset {
+            padding: 10px 20px; /* Adds padding to the reset button */
+            font-size: 1rem; /* Sets font size for the button */
+            background-color: #007bff; /* Sets button background color */
+            color: #fff; /* Sets button text color */
+            border: none; /* Removes border */
+            border-radius: 5px; /* Rounds button corners */
+            cursor: pointer; /* Changes cursor to pointer on hover */
+        }
+        .reset:hover {
+            background-color: #0056b3; /* Changes button color on hover */
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script> <!-- Adds confetti library -->
+</head>
+<body>
+    <div class="container">
+        <div class="status">Player X's turn</div> <!-- Displays the current game status -->
+        <div class="board" id="board"></div> <!-- Game board container -->
+        <button class="reset" onclick="resetGame()">Reset Game</button> <!-- Reset button -->
+    </div>
+
+    <script>
+        const board = document.getElementById('board'); // Selects the board element
+        const statusDiv = document.querySelector('.status'); // Selects the status div
+        let currentPlayer = 'X'; // Tracks the current player
+        let gameActive = true; // Tracks if the game is active
+        const boardState = Array(9).fill(null); // Initializes the board state with null values
+
+        const winningCombinations = [ // Defines all possible winning combinations
+            [0, 1, 2],
+            [3, 4, 5],
+            [6, 7, 8],
+            [0, 3, 6],
+            [1, 4, 7],
+            [2, 5, 8],
+            [0, 4, 8],
+            [2, 4, 6]
+        ];
+
+        function createBoard() {
+            board.innerHTML = ''; // Clears the board
+            boardState.forEach((_, index) => { // Loops through each cell
+                const cell = document.createElement('div'); // Creates a new cell
+                cell.classList.add('cell'); // Adds the 'cell' class
+                cell.dataset.index = index; // Sets the cell's index
+                cell.addEventListener('click', handleCellClick); // Adds click event listener
+                board.appendChild(cell); // Appends the cell to the board
+            });
+        }
+
+        function handleCellClick(e) {
+            const cell = e.target; // Gets the clicked cell
+            const index = cell.dataset.index; // Gets the cell's index
+
+            if (boardState[index] || !gameActive) return; // Prevents action if cell is taken or game is inactive
+
+            boardState[index] = currentPlayer; // Updates the board state
+            cell.textContent = currentPlayer; // Displays the current player's symbol
+            cell.classList.add('taken'); // Marks the cell as taken
+
+            if (checkWin()) { // Checks if the current player has won
+                statusDiv.textContent = `Player ${currentPlayer} wins!`; // Updates the status
+                gameActive = false; // Ends the game
+                triggerConfetti(); // Triggers confetti on victory
+                return;
+            }
+
+            if (boardState.every(cell => cell)) { // Checks if all cells are filled
+                statusDiv.textContent = 'It\'s a draw!'; // Updates the status for a draw
+                gameActive = false; // Ends the game
+                return;
+            }
+
+            currentPlayer = currentPlayer === 'X' ? 'O' : 'X'; // Switches the player
+            statusDiv.textContent = `Player ${currentPlayer}'s turn`; // Updates the status
+        }
+
+        function checkWin() {
+            return winningCombinations.some(combination => { // Checks each winning combination
+                return combination.every(index => boardState[index] === currentPlayer); // Returns true if all cells match the current player
+            });
+        }
+
+        function triggerConfetti() {
+            confetti({ // Configures and triggers the confetti effect
+                particleCount: 150, // Number of confetti particles
+                spread: 70, // Spread angle
+                origin: { y: 0.6 } // Starting position
+            });
+        }
+
+        function resetGame() {
+            currentPlayer = 'X'; // Resets the current player to 'X'
+            gameActive = true; // Reactivates the game
+            boardState.fill(null); // Clears the board state
+            statusDiv.textContent = `Player ${currentPlayer}'s turn`; // Resets the status
+            createBoard(); // Recreates the board
+        }
+
+        createBoard(); // Initializes the board on page load
+    </script>
+</body>
+</html>
