@@ -14,14 +14,14 @@ This repository serves as my dedicated, version-controlled sandbox environment f
 
 ## 📂 Active Project Modules
 
-### 🧮 1. Enterprise Calculator Suite (`/calculator-python`)
+### 🧮 1. Calculator (`/enterprise_calculator.py`)
 *   **Objective:** Translation of web-based interface logic into an object-oriented Python GUI.
 *   **Key Engineering Milestones:**
     *   Deployment of `tkinter` root structures.
     *   Implementation of sanitized input evaluation pipelines (`eval()` and `lambda` transformations).
     *   Exception handling for domain-specific runtime errors (e.g., `ZeroDivisionError`).
 
-### ❌ 2. Tactical Tic-Tac-Toe Engine (`/tictactoe-python`)
+### ❌ 2. Tic-Tac-Toe (`/tactical_tictactoe.py`)
 *   **Objective:** Development of a state-managed, tactical gaming engine.
 *   **Key Engineering Milestones:**
     *   Implementation of win-path vector tensors.
