@@ -1,0 +1,40 @@
+{% set c = report.current %}
+<article class="panel">
+  <header class="panel-head">
+    <div>
+      <h2>{{ name or "Selected location" }}</h2>
+      <p class="meta">As of {{ report.observed_time }} local time</p>
+    </div>
+    <div class="units" role="group" aria-label="Units">
+      {% for value, label in (('metric', '°C'), ('imperial', '°F')) %}
+      <button type="button" class="unit" aria-pressed="{{ 'true' if units == value else 'false' }}"
+              hx-get="/partials/weather?{{ {'lat': lat, 'lon': lon, 'name': name, 'units': value}|urlencode }}"
+              hx-target="#weather">{{ label }}</button>
+      {% endfor %}
+    </div>
+  </header>
+
+  <div class="now">
+    <span class="now-icon" aria-hidden="true">{{ c.icon }}</span>
+    <span class="now-temp">{{ c.temperature }}{{ report.temp_unit }}</span>
+    <span class="now-desc">{{ c.description }}</span>
+  </div>
+
+  <dl class="stats">
+    <div><dt>Feels like</dt><dd>{{ c.feels_like }}{{ report.temp_unit }}</dd></div>
+    <div><dt>Humidity</dt><dd>{{ c.humidity }}%</dd></div>
+    <div><dt>Wind</dt><dd>{{ c.wind_speed }} {{ report.wind_unit }}{% if c.wind_compass %} {{ c.wind_compass }}{% endif %}</dd></div>
+  </dl>
+
+  <h3 class="forecast-title">7-day forecast</h3>
+  <ol class="forecast">
+    {% for d in report.daily %}
+    <li>
+      <span class="f-day">{{ 'Today' if loop.first else d.date.strftime('%a %d %b') }}</span>
+      <span class="f-icon" aria-hidden="true">{{ d.icon }}</span>
+      <span class="f-desc">{{ d.description }}{% if d.precipitation_chance is not none %}<small>{{ d.precipitation_chance }}% rain</small>{% endif %}</span>
+      <span class="f-temps"><span class="hi"><span class="visually-hidden">High </span>{{ d.high }}°</span> <span class="lo"><span class="visually-hidden">Low </span>{{ d.low }}°</span></span>
+    </li>
+    {% endfor %}
+  </ol>
+</article>

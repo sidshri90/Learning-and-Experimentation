@@ -1,0 +1,7 @@
+<article class="panel">
+  <h2>{{ name or "Selected location" }}</h2>
+  <p class="notice" role="alert">{{ message }}</p>
+  <button type="button" class="unit retry"
+          hx-get="/partials/weather?{{ {'lat': lat, 'lon': lon, 'name': name, 'units': units}|urlencode }}"
+          hx-target="#weather">Try again</button>
+</article>

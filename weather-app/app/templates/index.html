@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="masthead">
+  <h1>Weather</h1>
+  <p>Search a city, then pick the right match.</p>
+</header>
+
+<div class="search">
+  <label for="q" class="visually-hidden">City, state or country</label>
+  <input id="q" name="q" type="search" autocomplete="off" spellcheck="false"
+         placeholder="Try “Patna, Bihar, India”"
+         role="combobox" aria-expanded="false" aria-controls="suggestion-list"
+         aria-autocomplete="list" aria-describedby="combo-hint"
+         hx-get="/partials/suggest"
+         hx-trigger="input changed delay:{{ settings.suggest_debounce_ms }}ms"
+         hx-target="#suggestions"
+         hx-sync="this:replace"
+         hx-indicator="#spinner">
+  <span id="spinner" class="spinner htmx-indicator" aria-hidden="true"></span>
+  <p id="combo-hint" class="visually-hidden">Type at least {{ settings.suggest_min_chars }} letters, then use the arrow keys to browse results and Enter to select.</p>
+  <div id="suggestions"></div>
+  <div id="combo-status" class="visually-hidden" role="status" aria-live="polite"></div>
+</div>
+
+<section id="weather" class="weather" aria-live="polite">
+  <p class="empty">No location selected. Start typing a city name above.</p>
+</section>
+{% endblock %}

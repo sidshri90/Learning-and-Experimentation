@@ -1,0 +1,17 @@
+{% if error %}
+<p class="notice" role="alert">{{ error }}</p>
+{% elif locations %}
+<ul id="suggestion-list" class="suggestions" role="listbox" aria-label="Matching places">
+  {% for loc in locations %}
+  <li id="opt-{{ loop.index0 }}" role="option" aria-selected="false"
+      data-label="{{ loc.label }}"
+      hx-get="/partials/weather?{{ {'lat': loc.latitude, 'lon': loc.longitude, 'name': loc.label}|urlencode }}"
+      hx-target="#weather">
+    <span class="place">{{ loc.name }}</span>
+    <span class="region">{% if loc.admin1 and loc.admin1|lower != loc.name|lower %}{{ loc.admin1 }}, {% endif %}{{ loc.country }}</span>
+  </li>
+  {% endfor %}
+</ul>
+{% elif searched %}
+<p class="notice">No places match “{{ query }}”. Check the spelling or add a state or country.</p>
+{% endif %}
