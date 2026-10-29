@@ -15,7 +15,7 @@
   <header class="panel-head">
     <div>
       <h2>{{ name or "Selected location" }}</h2>
-      <p class="meta">As of {{ report.observed_time }} local time</p>
+      <p class="meta">As of {{ report.observed_time }} local time{% if report.timezone %} · {{ report.timezone }}{% endif %}</p>
     </div>
     <div class="units" role="group" aria-label="Units">
       {% for value, label in (('metric', '°C'), ('imperial', '°F')) %}

@@ -22,6 +22,24 @@
   <div id="combo-status" class="visually-hidden" role="status" aria-live="polite"></div>
 </div>
 
+<div class="quick">
+  <button type="button" id="locate" class="locate"
+          hx-get="/partials/weather" hx-trigger="located" hx-include="#geo-lat, #geo-lon, #geo-name"
+          hx-target="#weather" hx-indicator="#weather-skeleton">
+    <span aria-hidden="true">📍</span> Use my location
+  </button>
+  <span id="locate-status" class="locate-status" role="status" aria-live="polite"></span>
+  <input type="hidden" id="geo-lat" name="lat">
+  <input type="hidden" id="geo-lon" name="lon">
+  <input type="hidden" id="geo-name" name="name">
+</div>
+
+<section id="recent" class="recent" aria-labelledby="recent-title" hidden>
+  <h2 id="recent-title" class="recent-title">Recent</h2>
+  <ul id="recent-list" class="recent-list"></ul>
+  <button type="button" id="recent-clear" class="link-btn">Clear</button>
+</section>
+
 <section id="weather" class="weather" aria-live="polite">
   <p class="empty">No location selected. Start typing a city name above.</p>
 </section>

@@ -168,3 +168,34 @@ def test_suggestion_options_have_combobox_markup(client):
     assert html.count('aria-selected="false"') == html.count('role="option"') == 3
     assert 'data-label="Paris, Île-de-France, France"' in html
     assert "tabindex" not in html and "hx-on" not in html
+
+
+def test_index_has_location_button_and_recent_section(client):
+    html = client.get("/").text
+    assert 'id="locate"' in html and 'hx-trigger="located"' in html
+    assert 'hx-include="#geo-lat, #geo-lon, #geo-name"' in html
+    for field in ("geo-lat", "geo-lon", "geo-name"):
+        assert f'id="{field}"' in html
+    assert 'id="recent"' in html and 'id="recent-list"' in html and 'id="recent-clear"' in html
+    assert "js/geolocate.js" in html and "js/memory.js" in html
+
+
+def test_new_scripts_are_served(client):
+    for path in ("/static/js/geolocate.js", "/static/js/memory.js"):
+        assert client.get(path).status_code == 200
+
+
+def test_suggestion_options_carry_coordinates_for_recent_searches(client):
+    html = client.get("/partials/suggest", params={"q": "Paris, Texas"}).text
+    assert 'data-lat="33.66"' in html and 'data-lon="-95.56"' in html
+
+
+def test_weather_partial_shows_timezone(client):
+    text = client.get("/partials/weather", params={"lat": 25.59, "lon": 85.14, "name": "Patna"}).text
+    assert "local time · Asia/Kolkata" in text
+
+
+def test_location_button_style_request(client, api):
+    r = client.get("/partials/weather", params={"lat": "25.5941", "lon": "85.1376", "name": "Your location (25.59, 85.14)"})
+    assert r.status_code == 200 and "Your location (25.59, 85.14)" in r.text
+    assert api.forecast.calls.last.request.url.params["latitude"] == "25.59"  # rounded before leaving the server

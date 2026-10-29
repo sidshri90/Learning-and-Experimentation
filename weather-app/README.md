@@ -50,11 +50,32 @@ JavaScript behaviour isn't covered by pytest, so verify by hand after changes to
 7. Type `par`, then press Tab. The list closes and focus moves on.
 8. Click a suggestion with the mouse. It works the same as Enter.
 
+## Manual check: location button and recent searches
+
+1. Click **Use my location**. Your browser asks for permission. Allow it: the weather loads for
+   "Your location (lat, lon)". (Works on `localhost` and on HTTPS sites only.)
+2. Click it again and choose Block in the browser prompt (or block it in site settings). A clear message appears.
+3. Pick three different cities. Chips appear under the search box, newest first. Pick six: only five stay.
+4. Click a chip. The weather loads and the chip moves to the front.
+5. Click **Clear**. The chips disappear. Reload the page: they stay gone.
+6. Pick a city, switch to °F, then search another city. It should stay in °F. Reload: still °F.
+
+## Optional: JavaScript checks (needs Node.js)
+
+```
+node tests/js/combobox.test.js
+node tests/js/geolocate.test.js
+node tests/js/memory.test.js
+```
+
+These run the browser scripts against a small fake DOM. They are not a replacement for the manual checks above.
+
 ## Status
 
-Milestone 5: 24-hour strip with sunrise/sunset markers and US AQI (air quality), on top of live place search,
-7-day forecast, detail tiles, °C/°F toggle, caching, a loading state, and a keyboard-accessible search box.
-Next: "use my location" button, then hardening and deployment.
+Milestone 6: "Use my location" button, last 5 searches, and a remembered °C/°F choice, on top of the
+24-hour strip, US AQI, live place search, 7-day forecast, detail tiles, caching, a loading state and a
+keyboard-accessible search box.
+Next: hardening (rate limiting, security headers), Dockerfile, deployment guide.
 
 ## Data sources
 

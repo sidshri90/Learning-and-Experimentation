@@ -4,7 +4,7 @@
 <ul id="suggestion-list" class="suggestions" role="listbox" aria-label="Matching places">
   {% for loc in locations %}
   <li id="opt-{{ loop.index0 }}" role="option" aria-selected="false"
-      data-label="{{ loc.label }}"
+      data-label="{{ loc.label }}" data-lat="{{ loc.latitude }}" data-lon="{{ loc.longitude }}"
       hx-get="/partials/weather?{{ {'lat': loc.latitude, 'lon': loc.longitude, 'name': loc.label}|urlencode }}"
       hx-target="#weather" hx-indicator="#weather-skeleton">
     <span class="place">{{ loc.name }}</span>
