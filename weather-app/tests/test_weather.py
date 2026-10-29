@@ -8,7 +8,8 @@ from app.cache import AsyncTTLCache
 from app.errors import UpstreamError
 from app.models import Units
 from app.services.weather import WeatherService, parse_forecast
-from tests.conftest import FORECAST_URL, forecast_payload
+from app.services.air_quality import AirQualityService
+from tests.conftest import AQ_URL, FORECAST_URL, aq_payload, forecast_payload
 
 
 def test_parse_forecast_normalizes_values():
@@ -55,8 +56,34 @@ def test_missing_optional_data_does_not_fail():
 
 
 def test_hour_without_matching_hourly_entry_gives_none():
-    report = parse_forecast(forecast_payload(time="2026-10-28T20:15"), Units.metric, 0, 0)
+    report = parse_forecast(forecast_payload(time="2026-11-05T20:15"), Units.metric, 0, 0)
     assert report.current.visibility is None and report.current.uv_index is None
+    assert report.hourly == []
+
+
+def test_hourly_strip_is_24_hours_from_now_with_sun_markers_in_order():
+    strip = parse_forecast(forecast_payload(), Units.metric, 0, 0).hourly
+    hours = [h for h in strip if h.kind == "hour"]
+    suns = [(h.label, h.time) for h in strip if h.kind == "sun"]
+    assert len(hours) == 24
+    assert hours[0].label == "Now" and hours[0].time == "14:00"
+    assert hours[-1].time == "13:00"  # 14:00 today .. 13:00 tomorrow
+    # today's sunrise (05:42) is already past; tomorrow's sunset (17:04) is beyond the window
+    assert suns == [("Sunset", "17:05"), ("Sunrise", "05:43")]
+    times = [h.time for h in strip]
+    i = times.index("17:05")
+    assert times[i - 1] == "17:00" and times[i + 1] == "18:00"  # marker sits between its hours
+    # fixture values at 14:00: 20 + (14 % 12) + 0.4 = 22.4 deg, wind 10 + 14 % 5 + 0.2 = 14.2, rain 14 % 7 * 10 = 0
+    assert strip[0].temperature == 22 and strip[0].wind_speed == 14 and strip[0].precipitation_chance == 0
+    assert hours[0].icon == "⛅" and hours[4].time == "18:00" and hours[4].icon == "☁️"  # day vs night icon
+
+
+def test_hourly_strip_failure_is_not_fatal():
+    data = forecast_payload()
+    data["hourly"]["weather_code"] = [None] * 48
+    data["hourly"]["temperature_2m"] = "garbage"
+    report = parse_forecast(data, Units.metric, 0, 0)
+    assert report.current.temperature == 31  # rest of the report is intact
 
 
 def test_night_uses_night_icon():
@@ -92,7 +119,8 @@ def test_units_are_sent_to_provider():
     params = route.calls.last.request.url.params
     assert params["temperature_unit"] == "fahrenheit" and params["wind_speed_unit"] == "mph"
     assert params["latitude"] == "25.59" and params["timezone"] == "auto"
-    assert "pressure_msl" in params["current"] and params["hourly"] == "visibility,uv_index"
+    assert "pressure_msl" in params["current"]
+    assert {"visibility", "uv_index", "temperature_2m", "is_day"} <= set(params["hourly"].split(","))
     assert "sunrise" in params["daily"] and "uv_index_max" in params["daily"]
 
 
@@ -110,3 +138,39 @@ def test_http_failure_raises_upstream_error():
         mock.get(FORECAST_URL).respond(503)
         with pytest.raises(UpstreamError):
             run_report((1, 2, Units.metric))
+
+
+def run_with_air(*calls):
+    async def go():
+        async with httpx.AsyncClient() as client:
+            aq = AirQualityService(client, AsyncTTLCache(10, 60), AQ_URL)
+            svc = WeatherService(client, AsyncTTLCache(10, 60), FORECAST_URL, aq)
+            return [await svc.get_report(*c) for c in calls]
+
+    return asyncio.run(go())
+
+
+def test_report_includes_air_quality():
+    with respx.mock(assert_all_called=False) as mock:
+        mock.get(FORECAST_URL).respond(json=forecast_payload())
+        aq_route = mock.get(AQ_URL).respond(json=aq_payload())
+        (report,) = run_with_air((25.59, 85.14, Units.metric))
+    assert report.air_quality.aqi == 162 and report.air_quality.category == "Unhealthy"
+    assert aq_route.calls.last.request.url.params["current"] == "us_aqi,pm10,pm2_5"
+
+
+def test_air_quality_failure_does_not_break_forecast_and_is_not_cached():
+    with respx.mock(assert_all_called=False) as mock:
+        mock.get(FORECAST_URL).respond(json=forecast_payload())
+        aq_route = mock.get(AQ_URL).respond(500)
+        first, second = run_with_air((1, 2, Units.metric), (1, 2, Units.metric))
+    assert first.air_quality is None and first.current.temperature == 31
+    assert aq_route.call_count == 2  # the failure was retried, not cached
+
+
+def test_air_quality_is_shared_between_unit_systems():
+    with respx.mock(assert_all_called=False) as mock:
+        mock.get(FORECAST_URL).respond(json=forecast_payload())
+        aq_route = mock.get(AQ_URL).respond(json=aq_payload())
+        run_with_air((1, 2, Units.metric), (1, 2, Units.imperial))
+    assert aq_route.call_count == 1

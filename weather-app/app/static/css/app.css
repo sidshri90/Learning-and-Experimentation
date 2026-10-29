@@ -107,6 +107,38 @@ a { color: var(--accent); }
   .forecast li { grid-template-columns: 4.75rem 2.25rem 1fr auto; gap: .4rem; font-size: .95rem; }
 }
 
+/* Air quality card */
+.aqi { margin-top: 1rem; padding: .85rem 1rem; background: var(--hover); border: 1px solid var(--line);
+  border-left: .4rem solid var(--aqi, var(--line)); border-radius: .5rem; }
+.aqi-title { font: 600 .9rem var(--sans); color: var(--muted); margin: 0 0 .25rem; }
+.aqi-main { margin: 0; display: flex; align-items: baseline; flex-wrap: wrap; gap: .25rem .6rem; }
+.aqi-value { font: 600 2rem/1 var(--serif); font-variant-numeric: tabular-nums; }
+.aqi-label { font-weight: 600; }
+.aqi-meter { position: relative; height: .5rem; border-radius: 99px; margin: .75rem 0;
+  background: linear-gradient(90deg, #2e9e4f 0 10%, #e0b000 10% 20%, #f08a00 20% 30%, #d93636 30% 40%, #8a3fc1 40% 60%, #7e0023 60% 100%); }
+.aqi-marker { position: absolute; top: 50%; width: .95rem; height: .95rem; border-radius: 50%;
+  background: var(--surface); border: 3px solid var(--ink); transform: translate(-50%, -50%); }
+.aqi-advice, .aqi-pm { margin: .2rem 0 0; font-size: .9rem; }
+.aqi-pm { color: var(--muted); font-variant-numeric: tabular-nums; }
+.aqi-good { --aqi: #2e9e4f; } .aqi-moderate { --aqi: #e0b000; } .aqi-sensitive { --aqi: #f08a00; }
+.aqi-unhealthy { --aqi: #d93636; } .aqi-very { --aqi: #8a3fc1; } .aqi-hazardous { --aqi: #7e0023; }
+
+/* 24-hour strip */
+.hourly-section { margin-top: 2rem; }
+.legend { margin: 0 0 .6rem; color: var(--muted); font-size: .85rem; }
+.hourly-scroll { overflow-x: auto; scroll-snap-type: x proximity; padding-bottom: .6rem; border-radius: .5rem; }
+.hourly-scroll:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.hourly { list-style: none; margin: 0; padding: 0; display: flex; gap: .5rem; }
+.h { flex: 0 0 4.75rem; scroll-snap-align: start; display: grid; justify-items: center; align-content: start; gap: .25rem;
+  padding: .65rem .35rem; background: var(--hover); border: 1px solid var(--line); border-radius: .5rem; font-variant-numeric: tabular-nums; }
+.h.now { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.h.sun { background: var(--chip); align-content: center; }
+.h-time { font-size: .85rem; color: var(--muted); font-weight: 600; }
+.h-icon { font-size: 1.5rem; line-height: 1; }
+.h-temp { font-weight: 600; font-size: 1.1rem; }
+.h-rain, .h-wind { font-size: .8rem; color: var(--muted); white-space: nowrap; }
+.h-sun { font-size: .8rem; font-weight: 600; }
+
 /* Loading state. HTMX adds .htmx-request to #weather-skeleton while a weather request runs.
    The skeleton appears only after a short delay, so fast responses never flash it. */
 .skeleton { display: none; }

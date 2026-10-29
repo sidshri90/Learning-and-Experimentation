@@ -11,6 +11,7 @@ from app.cache import AsyncTTLCache
 from app.config import get_settings
 from app.errors import UpstreamError
 from app.routers import api, pages
+from app.services.air_quality import AirQualityService
 from app.services.geocoding import OpenMeteoGeocoder
 from app.services.weather import WeatherService
 from app.templating import BASE_DIR
@@ -23,13 +24,19 @@ settings = get_settings()
 async def lifespan(app: FastAPI):
     """One shared HTTP client and cache set for the whole process."""
     async with httpx.AsyncClient(
-        timeout=settings.http_timeout, headers={"User-Agent": "weather-app/0.2"}
+        timeout=settings.http_timeout, headers={"User-Agent": "weather-app/0.5"}
     ) as client:
         app.state.geocoder = OpenMeteoGeocoder(
             client, AsyncTTLCache(settings.cache_maxsize, settings.geocode_cache_ttl), settings.geocoding_url
         )
+        air_quality = AirQualityService(
+            client, AsyncTTLCache(settings.cache_maxsize, settings.air_quality_cache_ttl), settings.air_quality_url
+        )
         app.state.weather = WeatherService(
-            client, AsyncTTLCache(settings.cache_maxsize, settings.forecast_cache_ttl), settings.forecast_url
+            client,
+            AsyncTTLCache(settings.cache_maxsize, settings.forecast_cache_ttl),
+            settings.forecast_url,
+            air_quality,
         )
         yield
 

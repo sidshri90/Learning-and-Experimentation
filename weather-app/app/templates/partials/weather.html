@@ -45,6 +45,22 @@
         {{ tile('🌅', 'Sunrise', report.sunrise or dash) }}
         {{ tile('🌇', 'Sunset', report.sunset or dash) }}
       </dl>
+
+      {% set aq = report.air_quality %}
+      {% if aq %}
+      <section class="aqi aqi-{{ aq.level }}" aria-labelledby="aqi-title">
+        <h3 id="aqi-title" class="aqi-title"><span aria-hidden="true">😷</span> Air quality (US AQI)</h3>
+        <p class="aqi-main"><span class="aqi-value">{{ aq.aqi }}</span> <span class="aqi-label">{{ aq.category }}</span></p>
+        <div class="aqi-meter" aria-hidden="true"><span class="aqi-marker" style="left: {{ aq.meter_percent }}%"></span></div>
+        <p class="aqi-advice">{{ aq.advice }}</p>
+        <p class="aqi-pm">PM2.5 {{ '%g'|format(aq.pm2_5) if aq.pm2_5 is not none else dash }} µg/m³ · PM10 {{ '%g'|format(aq.pm10) if aq.pm10 is not none else dash }} µg/m³</p>
+      </section>
+      {% else %}
+      <section class="aqi aqi-none" aria-labelledby="aqi-title">
+        <h3 id="aqi-title" class="aqi-title"><span aria-hidden="true">😷</span> Air quality (US AQI)</h3>
+        <p class="aqi-advice">Air quality data is unavailable right now.</p>
+      </section>
+      {% endif %}
     </div>
 
     <section class="col-forecast" aria-labelledby="forecast-title">
@@ -61,4 +77,32 @@
       </ol>
     </section>
   </div>
+
+  {% if report.hourly %}
+  <section class="hourly-section" aria-labelledby="hourly-title">
+    <h3 id="hourly-title" class="forecast-title">Next 24 hours</h3>
+    <p class="legend"><span aria-hidden="true">💧</span> chance of rain · <span aria-hidden="true">💨</span> wind ({{ report.wind_unit }}) · scroll sideways for more</p>
+    <div class="hourly-scroll" role="region" aria-labelledby="hourly-title" tabindex="0">
+      <ol class="hourly">
+        {% for h in report.hourly %}
+        {% if h.kind == 'sun' %}
+        <li class="h sun">
+          <span class="h-time">{{ h.time }}</span>
+          <span class="h-icon" aria-hidden="true">{{ h.icon }}</span>
+          <span class="h-sun">{{ h.label }}</span>
+        </li>
+        {% else %}
+        <li class="h{{ ' now' if h.label == 'Now' else '' }}">
+          <span class="h-time">{{ h.label or h.time }}</span>
+          <span class="h-icon" aria-hidden="true">{{ h.icon }}</span>
+          <span class="h-temp">{{ h.temperature if h.temperature is not none else dash }}°</span>
+          <span class="h-rain"><span aria-hidden="true">💧</span> {{ h.precipitation_chance if h.precipitation_chance is not none else dash }}%<span class="visually-hidden"> chance of rain</span></span>
+          <span class="h-wind"><span aria-hidden="true">💨</span> {{ h.wind_speed if h.wind_speed is not none else dash }}<span class="visually-hidden"> {{ report.wind_unit }}</span></span>
+        </li>
+        {% endif %}
+        {% endfor %}
+      </ol>
+    </div>
+  </section>
+  {% endif %}
 </article>

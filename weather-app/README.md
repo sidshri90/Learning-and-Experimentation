@@ -52,5 +52,11 @@ JavaScript behaviour isn't covered by pytest, so verify by hand after changes to
 
 ## Status
 
-Milestone 3: keyboard-accessible combobox on top of live place search, 7-day forecast, °C/°F toggle, caching and error handling.
-Next: polish (loading and empty states, geolocation idea, README screenshots).
+Milestone 5: 24-hour strip with sunrise/sunset markers and US AQI (air quality), on top of live place search,
+7-day forecast, detail tiles, °C/°F toggle, caching, a loading state, and a keyboard-accessible search box.
+Next: "use my location" button, then hardening and deployment.
+
+## Data sources
+
+Weather: [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0, non-commercial free tier).
+Air quality: Copernicus Atmosphere Monitoring Service, via Open-Meteo.

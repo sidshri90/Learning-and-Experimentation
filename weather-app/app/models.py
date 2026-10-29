@@ -1,5 +1,6 @@
 import datetime as dt
 from enum import Enum
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -54,6 +55,28 @@ class DailyForecast(BaseModel):
     icon: str
 
 
+class HourlyItem(BaseModel):
+    """One cell in the 24-hour strip: an hour, or a sunrise/sunset marker between hours."""
+
+    kind: Literal["hour", "sun"] = "hour"
+    time: str  # local "HH:MM"
+    label: str | None = None  # "Now", "Sunrise", "Sunset"
+    icon: str
+    temperature: int | None = None
+    precipitation_chance: int | None = None
+    wind_speed: int | None = None
+
+
+class AirQuality(BaseModel):
+    aqi: int  # US AQI
+    category: str
+    level: str  # css slug: good, moderate, sensitive, unhealthy, very, hazardous
+    advice: str
+    meter_percent: float  # marker position on a 0-500 scale
+    pm2_5: float | None = None  # ug/m3
+    pm10: float | None = None
+
+
 class WeatherReport(BaseModel):
     latitude: float
     longitude: float
@@ -69,3 +92,5 @@ class WeatherReport(BaseModel):
     uv_max: float | None = None  # today's peak UV index
     current: CurrentConditions
     daily: list[DailyForecast]
+    hourly: list[HourlyItem] = []
+    air_quality: AirQuality | None = None

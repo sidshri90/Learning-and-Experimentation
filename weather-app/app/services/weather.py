@@ -1,12 +1,17 @@
+import asyncio
+import logging
 from typing import Any
 
 import httpx
 
 from app.cache import AsyncTTLCache
 from app.errors import UpstreamError
-from app.models import CurrentConditions, DailyForecast, Units, WeatherReport
+from app.models import CurrentConditions, DailyForecast, HourlyItem, Units, WeatherReport
+from app.services.air_quality import AirQualityService
 from app.services.scales import hpa_to_inhg, m_to_km, m_to_mi, uv_category
 from app.services.wmo import compass, describe
+
+logger = logging.getLogger("weather")
 
 _CURRENT = (
     "temperature_2m,relative_humidity_2m,apparent_temperature,is_day,weather_code,"
@@ -16,7 +21,11 @@ _DAILY = (
     "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,"
     "sunrise,sunset,uv_index_max"
 )
-_HOURLY = "visibility,uv_index"  # read at the current hour; milestone 5 adds the 24 h strip
+_HOURLY = (
+    "visibility,uv_index,temperature_2m,weather_code,precipitation_probability,"
+    "wind_speed_10m,is_day"
+)
+_STRIP_HOURS = 24
 
 _UNIT_PARAMS = {
     Units.metric: {"temperature_unit": "celsius", "wind_speed_unit": "kmh"},
@@ -44,6 +53,49 @@ def _clock(value: Any) -> str | None:
     return str(value).split("T")[-1][:5] if value else None
 
 
+def _round_or_none(value: Any) -> int | None:
+    return None if value is None else round(value)
+
+
+def _hourly_strip(data: dict[str, Any], current_time: str, sunrises: list, sunsets: list) -> list[HourlyItem]:
+    """The next 24 hours starting at the current hour, with sunrise/sunset markers inserted in order."""
+    hourly = data.get("hourly") or {}
+    times = hourly.get("time") or []
+    hour = str(current_time)[:13]
+    start = next((i for i, t in enumerate(times) if str(t)[:13] == hour), None)
+    if start is None:
+        return []
+    window = range(start, min(start + _STRIP_HOURS, len(times)))
+
+    def at(key: str, i: int) -> Any:
+        series = hourly.get(key) or []
+        return series[i] if i < len(series) else None
+
+    entries: list[tuple[str, HourlyItem]] = []  # (ISO minute, item) for sorting
+    for n, i in enumerate(window):
+        code, day = at("weather_code", i), at("is_day", i)
+        icon = describe(int(code), True if day is None else bool(day))[1] if code is not None else "🌡️"
+        entries.append((
+            str(times[i])[:16],
+            HourlyItem(
+                time=_clock(times[i]),
+                label="Now" if n == 0 else None,
+                icon=icon,
+                temperature=_round_or_none(at("temperature_2m", i)),
+                precipitation_chance=_round_or_none(at("precipitation_probability", i)),
+                wind_speed=_round_or_none(at("wind_speed_10m", i)),
+            ),
+        ))
+
+    first, last = str(times[window[0]])[:13], str(times[window[-1]])[:13]
+    for label, icon, events in (("Sunrise", "🌅", sunrises), ("Sunset", "🌇", sunsets)):
+        for event in events or []:
+            if event and first <= str(event)[:13] <= last:
+                entries.append((str(event)[:16], HourlyItem(kind="sun", time=_clock(event), label=label, icon=icon)))
+    entries.sort(key=lambda e: e[0])  # stable: an hour sorts before a marker at the same minute
+    return [item for _, item in entries]
+
+
 def parse_forecast(data: dict[str, Any], units: Units, lat: float, lon: float) -> WeatherReport:
     """Normalize an Open-Meteo forecast response into our own schema."""
     try:
@@ -62,6 +114,7 @@ def parse_forecast(data: dict[str, Any], units: Units, lat: float, lon: float) -
 
         uv = _hourly_at(data, "uv_index", cur["time"])
         uv = None if uv is None else round(uv, 1)
+
         current = CurrentConditions(
             temperature=round(cur["temperature_2m"]),
             feels_like=round(cur["apparent_temperature"]),
@@ -96,6 +149,10 @@ def parse_forecast(data: dict[str, Any], units: Units, lat: float, lon: float) -
         sunrises, sunsets = daily.get("sunrise") or [], daily.get("sunset") or []
         uv_maxes = daily.get("uv_index_max") or []
         uv_max = uv_maxes[0] if uv_maxes else None
+        try:
+            strip = _hourly_strip(data, cur["time"], sunrises, sunsets)
+        except (KeyError, IndexError, TypeError, ValueError):
+            strip = []  # the strip is optional; never fail the whole report over it
         return WeatherReport(
             latitude=lat,
             longitude=lon,
@@ -111,20 +168,42 @@ def parse_forecast(data: dict[str, Any], units: Units, lat: float, lon: float) -
             observed_time=str(cur["time"]).split("T")[-1][:5],
             current=current,
             daily=days,
+            hourly=strip,
         )
     except (KeyError, IndexError, TypeError, ValueError) as exc:  # pydantic errors are ValueErrors
         raise UpstreamError("Weather data came back in an unexpected format.") from exc
 
 
 class WeatherService:
-    def __init__(self, client: httpx.AsyncClient, cache: AsyncTTLCache, url: str) -> None:
+    def __init__(
+        self,
+        client: httpx.AsyncClient,
+        cache: AsyncTTLCache,
+        url: str,
+        air_quality: AirQualityService | None = None,
+    ) -> None:
         self._client = client
         self._cache = cache
         self._url = url
+        self._air_quality = air_quality
 
     async def get_report(self, lat: float, lon: float, units: Units) -> WeatherReport:
         lat, lon = round(lat, 2), round(lon, 2)  # ~1 km; also makes cache keys reusable
+        # Forecast and air quality run in parallel and are cached separately, so an
+        # air-quality failure never blocks the forecast and is never cached.
+        report, aq = await asyncio.gather(self._forecast(lat, lon, units), self._air(lat, lon))
+        return report.model_copy(update={"air_quality": aq}) if aq else report
 
+    async def _air(self, lat: float, lon: float):
+        if self._air_quality is None:
+            return None
+        try:
+            return await self._air_quality.get(lat, lon)
+        except UpstreamError as exc:
+            logger.warning("Air quality unavailable for %s,%s: %s", lat, lon, exc.message)
+            return None
+
+    async def _forecast(self, lat: float, lon: float, units: Units) -> WeatherReport:
         async def fetch() -> WeatherReport:
             params = {
                 "latitude": lat,

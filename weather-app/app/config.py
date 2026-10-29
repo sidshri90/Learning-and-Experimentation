@@ -19,11 +19,13 @@ class Settings(BaseSettings):
     # Upstream APIs (Open-Meteo, no key needed)
     geocoding_url: str = "https://geocoding-api.open-meteo.com/v1/search"
     forecast_url: str = "https://api.open-meteo.com/v1/forecast"
+    air_quality_url: str = "https://air-quality-api.open-meteo.com/v1/air-quality"
     http_timeout: float = 8.0
 
     # Caching (seconds)
     geocode_cache_ttl: int = 3600
     forecast_cache_ttl: int = 600
+    air_quality_cache_ttl: int = 1800
     cache_maxsize: int = 512
 
 

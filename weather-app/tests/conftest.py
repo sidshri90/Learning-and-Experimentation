@@ -8,6 +8,7 @@ from app.main import app
 
 GEO_URL = "https://geocoding-api.open-meteo.com/v1/search"
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
+AQ_URL = "https://air-quality-api.open-meteo.com/v1/air-quality"
 
 PARIS = {
     "results": [
@@ -19,6 +20,29 @@ PARIS = {
          "country_code": "US", "admin1": "Tennessee", "population": 10156, "timezone": "America/Chicago"},
     ]
 }
+
+
+def _hourly():
+    """48 hourly points from 2026-10-28T00:00. Index 14 (14:00) is the 'current' hour."""
+    times = [f"2026-10-{28 + h // 24}T{h % 24:02d}:00" for h in range(48)]
+    visibility, uv = [24140.0] * 48, [0.0] * 48
+    visibility[14], uv[14] = 10000.0, 3.44
+    return {
+        "time": times,
+        "visibility": visibility,
+        "uv_index": uv,
+        "temperature_2m": [20 + (h % 12) + 0.4 for h in range(48)],
+        "weather_code": [2] * 48,
+        "precipitation_probability": [h % 7 * 10 for h in range(48)],
+        "wind_speed_10m": [10 + h % 5 + 0.2 for h in range(48)],
+        "is_day": [1 if 6 <= h % 24 < 18 else 0 for h in range(48)],
+    }
+
+
+def aq_payload(us_aqi=162, **overrides):
+    cur = {"time": "2026-10-28T14:00", "interval": 3600, "us_aqi": us_aqi, "pm10": 88.34, "pm2_5": 61.21}
+    cur.update(overrides)
+    return {"current": cur}
 
 
 def forecast_payload(**current_overrides):
@@ -41,11 +65,7 @@ def forecast_payload(**current_overrides):
             "sunset": ["2026-10-28T17:05", "2026-10-29T17:04", "2026-10-30T17:03"],
             "uv_index_max": [7.9, 6.0, 5.1],
         },
-        "hourly": {
-            "time": ["2026-10-28T13:00", "2026-10-28T14:00", "2026-10-28T15:00"],
-            "visibility": [24140.0, 10000.0, 9000.0],
-            "uv_index": [5.2, 3.44, 2.1],
-        },
+        "hourly": _hourly(),
     }
 
 
@@ -56,6 +76,7 @@ def api():
         yield SimpleNamespace(
             geo=mock.get(GEO_URL).respond(json=PARIS),
             forecast=mock.get(FORECAST_URL).respond(json=forecast_payload()),
+            aq=mock.get(AQ_URL).respond(json=aq_payload()),
         )
 
 

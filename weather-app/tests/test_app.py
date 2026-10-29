@@ -64,6 +64,7 @@ def test_weather_partial_tolerates_missing_extras(client, api):
     api.forecast.respond(json=data)
     r = client.get("/partials/weather", params={"lat": 1, "lon": 2})
     assert r.status_code == 200 and "Visibility" in r.text and "—" in r.text
+    assert "Next 24 hours" not in r.text  # no hourly data -> section hidden
 
 
 def test_loading_state_markup(client):
@@ -76,6 +77,38 @@ def test_loading_state_markup(client):
 
 def test_footer_credits_open_meteo(client):
     assert "Open-Meteo.com" in client.get("/").text
+
+
+def test_weather_partial_shows_hourly_strip(client):
+    text = client.get("/partials/weather", params={"lat": 25.59, "lon": 85.14, "name": "Patna"}).text
+    assert "Next 24 hours" in text and 'role="region"' in text and 'tabindex="0"' in text
+    assert text.count('<li class="h') == 26  # 24 hours + sunrise + sunset markers
+    assert ">Now<" in text and ">Sunrise<" in text and ">Sunset<" in text
+    assert "chance of rain" in text
+
+
+def test_weather_partial_shows_air_quality(client):
+    text = client.get("/partials/weather", params={"lat": 25.59, "lon": 85.14, "name": "Patna"}).text
+    assert "Air quality (US AQI)" in text and "162" in text and 'class="aqi aqi-unhealthy"' in text
+    assert "PM2.5 61.2" in text and "PM10 88.3" in text and "left: 32.4%" in text
+
+
+def test_air_quality_failure_degrades_gracefully(client, api):
+    api.aq.respond(500)
+    r = client.get("/partials/weather", params={"lat": 1, "lon": 2, "name": "X"})
+    assert r.status_code == 200
+    assert "Air quality data is unavailable right now" in r.text
+    assert "31°C" in r.text and "Next 24 hours" in r.text  # the rest still renders
+
+
+def test_api_weather_includes_new_sections(client):
+    data = client.get("/api/weather", params={"lat": 25.59, "lon": 85.14}).json()
+    assert data["air_quality"]["aqi"] == 162
+    assert len(data["hourly"]) == 26 and data["hourly"][0]["label"] == "Now"
+
+
+def test_footer_credits_air_quality_source(client):
+    assert "Copernicus" in client.get("/").text
 
 
 def test_weather_partial_units_toggle_is_forwarded(client, api):

@@ -1,6 +1,6 @@
 import pytest
 
-from app.services.scales import hpa_to_inhg, m_to_km, m_to_mi, uv_category
+from app.services.scales import aqi_category, hpa_to_inhg, m_to_km, m_to_mi, uv_category
 
 
 def test_conversions():
@@ -16,3 +16,14 @@ def test_conversions():
 )
 def test_uv_category(uv, label):
     assert uv_category(uv) == label
+
+
+@pytest.mark.parametrize(
+    "aqi, label, level",
+    [(0, "Good", "good"), (50, "Good", "good"), (51, "Moderate", "moderate"), (100, "Moderate", "moderate"),
+     (101, "Unhealthy for sensitive groups", "sensitive"), (150, "Unhealthy for sensitive groups", "sensitive"),
+     (151, "Unhealthy", "unhealthy"), (200, "Unhealthy", "unhealthy"), (201, "Very unhealthy", "very"),
+     (300, "Very unhealthy", "very"), (301, "Hazardous", "hazardous"), (500, "Hazardous", "hazardous")],
+)
+def test_aqi_category(aqi, label, level):
+    assert aqi_category(aqi)[:2] == (label, level)
