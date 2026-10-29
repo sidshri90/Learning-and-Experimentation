@@ -1,4 +1,16 @@
 {% set c = report.current %}
+{% macro tile(icon, label, value, note=None) -%}
+<div class="tile">
+  <dt><span aria-hidden="true">{{ icon }}</span> {{ label }}</dt>
+  <dd>{{ value }}{% if note %}<small>{{ note }}</small>{% endif %}</dd>
+</div>
+{%- endmacro %}
+{% set dash = '—' %}
+{% set arrow %}{% if c.wind_direction is not none %}<span class="wind-arrow" style="transform: rotate({{ (c.wind_direction + 180) % 360 }}deg)" aria-hidden="true">↑</span> {{ c.wind_compass }}{% else %}{{ dash }}{% endif %}{% endset %}
+{% set visibility = ('%g %s'|format(c.visibility, report.visibility_unit)) if c.visibility is not none else dash %}
+{% set pressure = ('%g %s'|format(c.pressure, report.pressure_unit)) if c.pressure is not none else dash %}
+{% set uv = ('%g'|format(c.uv_index)) if c.uv_index is not none else dash %}
+{% set uv_note = ((c.uv_category ~ ' · ' if c.uv_category else '') ~ ('peak ' ~ ('%g'|format(report.uv_max)) if report.uv_max is not none else ''))|trim(' · ') %}
 <article class="panel">
   <header class="panel-head">
     <div>
@@ -9,32 +21,44 @@
       {% for value, label in (('metric', '°C'), ('imperial', '°F')) %}
       <button type="button" class="unit" aria-pressed="{{ 'true' if units == value else 'false' }}"
               hx-get="/partials/weather?{{ {'lat': lat, 'lon': lon, 'name': name, 'units': value}|urlencode }}"
-              hx-target="#weather">{{ label }}</button>
+              hx-target="#weather" hx-indicator="#weather-skeleton">{{ label }}</button>
       {% endfor %}
     </div>
   </header>
 
-  <div class="now">
-    <span class="now-icon" aria-hidden="true">{{ c.icon }}</span>
-    <span class="now-temp">{{ c.temperature }}{{ report.temp_unit }}</span>
-    <span class="now-desc">{{ c.description }}</span>
+  <div class="layout">
+    <div class="col-now">
+      <div class="now">
+        <span class="now-icon" aria-hidden="true">{{ c.icon }}</span>
+        <span class="now-temp">{{ c.temperature }}{{ report.temp_unit }}</span>
+        <span class="now-desc">{{ c.description }}</span>
+      </div>
+
+      <dl class="tiles">
+        {{ tile('🌡️', 'Feels like', c.feels_like ~ report.temp_unit) }}
+        {{ tile('💧', 'Humidity', c.humidity ~ '%') }}
+        {{ tile('💨', 'Wind', c.wind_speed ~ ' ' ~ report.wind_unit) }}
+        {{ tile('🧭', 'Wind from', arrow) }}
+        {{ tile('☀️', 'UV index', uv, uv_note or None) }}
+        {{ tile('👁️', 'Visibility', visibility) }}
+        {{ tile('🌀', 'Pressure', pressure) }}
+        {{ tile('🌅', 'Sunrise', report.sunrise or dash) }}
+        {{ tile('🌇', 'Sunset', report.sunset or dash) }}
+      </dl>
+    </div>
+
+    <section class="col-forecast" aria-labelledby="forecast-title">
+      <h3 id="forecast-title" class="forecast-title">7-day forecast</h3>
+      <ol class="forecast">
+        {% for d in report.daily %}
+        <li>
+          <span class="f-day">{{ 'Today' if loop.first else d.date.strftime('%a %d %b') }}</span>
+          <span class="f-icon" aria-hidden="true">{{ d.icon }}</span>
+          <span class="f-desc">{{ d.description }}{% if d.precipitation_chance is not none %}<small>{{ d.precipitation_chance }}% rain</small>{% endif %}</span>
+          <span class="f-temps"><span class="hi"><span class="visually-hidden">High </span>{{ d.high }}°</span> <span class="lo"><span class="visually-hidden">Low </span>{{ d.low }}°</span></span>
+        </li>
+        {% endfor %}
+      </ol>
+    </section>
   </div>
-
-  <dl class="stats">
-    <div><dt>Feels like</dt><dd>{{ c.feels_like }}{{ report.temp_unit }}</dd></div>
-    <div><dt>Humidity</dt><dd>{{ c.humidity }}%</dd></div>
-    <div><dt>Wind</dt><dd>{{ c.wind_speed }} {{ report.wind_unit }}{% if c.wind_compass %} {{ c.wind_compass }}{% endif %}</dd></div>
-  </dl>
-
-  <h3 class="forecast-title">7-day forecast</h3>
-  <ol class="forecast">
-    {% for d in report.daily %}
-    <li>
-      <span class="f-day">{{ 'Today' if loop.first else d.date.strftime('%a %d %b') }}</span>
-      <span class="f-icon" aria-hidden="true">{{ d.icon }}</span>
-      <span class="f-desc">{{ d.description }}{% if d.precipitation_chance is not none %}<small>{{ d.precipitation_chance }}% rain</small>{% endif %}</span>
-      <span class="f-temps"><span class="hi"><span class="visually-hidden">High </span>{{ d.high }}°</span> <span class="lo"><span class="visually-hidden">Low </span>{{ d.low }}°</span></span>
-    </li>
-    {% endfor %}
-  </ol>
 </article>

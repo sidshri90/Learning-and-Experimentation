@@ -25,4 +25,13 @@
 <section id="weather" class="weather" aria-live="polite">
   <p class="empty">No location selected. Start typing a city name above.</p>
 </section>
+
+<div id="weather-skeleton" class="skeleton" aria-hidden="true">
+  <div class="panel">
+    <span class="sk sk-title"></span>
+    <span class="sk sk-line"></span>
+    <span class="sk sk-big"></span>
+    <div class="sk-tiles">{% for _ in range(6) %}<span class="sk sk-tile"></span>{% endfor %}</div>
+  </div>
+</div>
 {% endblock %}

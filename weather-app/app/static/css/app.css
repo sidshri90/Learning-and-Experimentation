@@ -6,6 +6,7 @@
   --line: #c4d3de;
   --accent: #1f5fbf;
   --hover: #eaf1fb;
+  --chip: #dbe7f1;
   --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
   --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   color-scheme: light dark;
@@ -19,43 +20,30 @@
     --line: #2a4054;
     --accent: #6fb1ff;
     --hover: #1d3247;
+    --chip: #284359;
   }
 }
 
 * { box-sizing: border-box; }
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--ink);
-  font: 1rem/1.5 var(--sans);
-}
-.shell { max-width: 40rem; margin: 0 auto; padding: 3rem 1.25rem 4rem; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 1rem/1.5 var(--sans); }
+a { color: var(--accent); }
+.shell { max-width: 72rem; margin: 0 auto; padding: clamp(1.25rem, 4vw, 3rem) clamp(1rem, 4vw, 2rem) 2rem; }
 
-.masthead h1 { font: 600 2.75rem/1.1 var(--serif); margin: 0 0 .25rem; letter-spacing: -.01em; }
+.masthead h1 { font: 600 clamp(2.25rem, 6vw, 3rem)/1.1 var(--serif); margin: 0 0 .25rem; letter-spacing: -.01em; }
 .masthead p { margin: 0 0 2rem; color: var(--muted); }
 
-.search { position: relative; }
+/* Search + suggestions */
+.search { position: relative; max-width: 40rem; }
 .search input {
-  width: 100%;
-  padding: .9rem 2.75rem .9rem 1rem;
-  font: inherit;
-  color: var(--ink);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: .5rem;
+  width: 100%; padding: .9rem 2.75rem .9rem 1rem; font: inherit; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line); border-radius: .5rem;
 }
 .search input:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
-
 .suggestions {
   list-style: none; margin: .35rem 0 0; padding: .25rem;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: .5rem;
+  background: var(--surface); border: 1px solid var(--line); border-radius: .5rem;
 }
-.suggestions li {
-  display: flex; justify-content: space-between; gap: 1rem;
-  padding: .6rem .75rem; border-radius: .35rem; cursor: pointer;
-}
+.suggestions li { display: flex; justify-content: space-between; gap: 1rem; padding: .7rem .75rem; border-radius: .35rem; cursor: pointer; }
 .suggestions li:hover { background: var(--hover); }
 .suggestions li[aria-selected="true"] { background: var(--hover); box-shadow: inset 0 0 0 2px var(--accent); }
 .place { font-weight: 600; }
@@ -64,10 +52,6 @@ body {
 .notice { margin: .5rem .25rem 0; }
 .panel .notice { margin: 1rem 0; color: var(--ink); }
 
-.weather { margin-top: 2.5rem; }
-.panel { background: var(--surface); border: 1px solid var(--line); border-radius: .5rem; padding: 1.5rem; }
-.panel h2 { font: 600 1.75rem/1.2 var(--serif); margin: 0; }
-
 .spinner {
   position: absolute; right: 1rem; top: .95rem; width: 1.1rem; height: 1.1rem;
   border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%;
@@ -75,47 +59,77 @@ body {
 }
 .spinner.htmx-request { opacity: 1; }
 @keyframes spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } }
 
-.visually-hidden {
-  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
-  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
-}
-
-.panel-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+/* Weather panel */
+.weather { margin-top: 2.5rem; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: .6rem; padding: clamp(1rem, 3vw, 1.75rem); }
+.panel h2 { font: 600 clamp(1.4rem, 4vw, 1.9rem)/1.2 var(--serif); margin: 0; overflow-wrap: anywhere; }
+.panel-head { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: .75rem 1rem; }
 .meta { margin: .25rem 0 0; color: var(--muted); font-size: .9rem; }
 
 .units { display: inline-flex; border: 1px solid var(--line); border-radius: .4rem; overflow: hidden; flex-shrink: 0; }
-.unit {
-  font: inherit; font-size: .9rem; padding: .35rem .8rem; cursor: pointer;
-  color: var(--ink); background: transparent; border: 0;
-}
+.unit { font: inherit; font-size: .95rem; min-height: 2.5rem; min-width: 3rem; padding: .35rem .9rem; cursor: pointer; color: var(--ink); background: transparent; border: 0; }
 .unit[aria-pressed="true"] { background: var(--accent); color: var(--surface); font-weight: 600; }
 .unit:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
 .retry { border: 1px solid var(--line); border-radius: .4rem; }
 
-.now { display: flex; align-items: baseline; flex-wrap: wrap; gap: .5rem 1rem; margin: 1.5rem 0 1rem; }
-.now-icon { font-size: 2.5rem; line-height: 1; }
-.now-temp { font: 600 3.5rem/1 var(--serif); font-variant-numeric: tabular-nums; }
+/* One column on phones, two columns on wide screens */
+.layout { display: grid; gap: 1.75rem 2.5rem; margin-top: 1.25rem; }
+@media (min-width: 62rem) {
+  .layout { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: start; }
+}
+
+.now { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem 1rem; margin: 0 0 1.25rem; }
+.now-icon, .f-icon {
+  display: inline-grid; place-items: center; border-radius: 50%; background: var(--chip); line-height: 1;
+}
+.now-icon { width: 4rem; height: 4rem; font-size: 2.25rem; }
+.now-temp { font: 600 clamp(3rem, 9vw, 3.75rem)/1 var(--serif); font-variant-numeric: tabular-nums; }
 .now-desc { font-size: 1.15rem; color: var(--muted); }
 
-.stats { display: flex; flex-wrap: wrap; gap: .75rem 2rem; margin: 0 0 1.75rem; padding: 0; }
-.stats div { min-width: 6rem; }
-.stats dt { color: var(--muted); font-size: .85rem; }
-.stats dd { margin: 0; font-weight: 600; }
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; margin: 0; padding: 0; }
+@media (min-width: 36rem) { .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.tile { background: var(--hover); border: 1px solid var(--line); border-radius: .5rem; padding: .7rem .85rem; }
+.tile dt { color: var(--muted); font-size: .85rem; }
+.tile dd { margin: .15rem 0 0; font-weight: 600; font-size: 1.2rem; line-height: 1.25; font-variant-numeric: tabular-nums; }
+.tile small { display: block; font-weight: 400; font-size: .8rem; color: var(--muted); }
+.wind-arrow { display: inline-block; line-height: 1; transition: transform .3s; }
 
 .forecast-title { font: 600 1.15rem var(--serif); margin: 0 0 .5rem; }
 .forecast { list-style: none; margin: 0; padding: 0; }
-.forecast li {
-  display: grid; grid-template-columns: 6.5rem 2.25rem 1fr auto; align-items: center; gap: .5rem;
-  padding: .6rem 0; border-top: 1px solid var(--line);
-}
+.forecast li { display: grid; grid-template-columns: 6.5rem 2.5rem 1fr auto; align-items: center; gap: .6rem; padding: .55rem 0; border-top: 1px solid var(--line); }
+.f-icon { width: 2.25rem; height: 2.25rem; font-size: 1.25rem; }
 .f-day { font-weight: 600; }
-.f-icon { font-size: 1.5rem; line-height: 1; text-align: center; }
 .f-desc small { display: block; color: var(--muted); font-size: .8rem; }
 .f-temps { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .lo { color: var(--muted); margin-left: .5rem; }
 @media (max-width: 30rem) {
-  .forecast li { grid-template-columns: 5rem 2rem 1fr auto; font-size: .95rem; }
-  .now-temp { font-size: 3rem; }
+  .forecast li { grid-template-columns: 4.75rem 2.25rem 1fr auto; gap: .4rem; font-size: .95rem; }
+}
+
+/* Loading state. HTMX adds .htmx-request to #weather-skeleton while a weather request runs.
+   The skeleton appears only after a short delay, so fast responses never flash it. */
+.skeleton { display: none; }
+.weather:has(+ .skeleton.htmx-request) .empty { display: none; }
+.weather:has(.panel):has(+ .skeleton.htmx-request) { opacity: .45; pointer-events: none; transition: opacity .2s; }
+.weather:not(:has(.panel)) + .skeleton.htmx-request { display: block; animation: skel-in .2s ease .25s both; }
+@keyframes skel-in { from { opacity: 0; } to { opacity: 1; } }
+.sk {
+  display: block; border-radius: .4rem;
+  background: linear-gradient(90deg, var(--chip) 25%, var(--hover) 50%, var(--chip) 75%);
+  background-size: 200% 100%; animation: shimmer 1.3s linear infinite;
+}
+@keyframes shimmer { to { background-position: -200% 0; } }
+.sk-title { width: 55%; height: 1.75rem; }
+.sk-line { width: 30%; height: 1rem; margin: .6rem 0 1.5rem; }
+.sk-big { width: 45%; height: 3.5rem; margin-bottom: 1.25rem; }
+.sk-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); gap: .75rem; }
+.sk-tile { height: 4rem; }
+@media (prefers-reduced-motion: reduce) { .spinner, .sk { animation-duration: 3s; } .wind-arrow { transition: none; } }
+
+.credit { max-width: 72rem; margin: 0 auto; padding: 1rem clamp(1rem, 4vw, 2rem) 2.5rem; color: var(--muted); font-size: .85rem; }
+
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
 }

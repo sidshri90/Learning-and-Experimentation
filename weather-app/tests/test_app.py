@@ -1,4 +1,4 @@
-from tests.conftest import FORECAST_URL, GEO_URL  # noqa: F401
+from tests.conftest import FORECAST_URL, GEO_URL, forecast_payload  # noqa: F401
 
 
 def test_health(client):
@@ -40,6 +40,42 @@ def test_weather_partial_renders_report(client):
     assert "Patna, Bihar, India" in text and "31°C" in text and "Partly cloudy" in text
     assert "Today" in text and "55% rain" in text
     assert 'aria-pressed="true"' in text and "units=imperial" in text
+
+
+def test_weather_partial_shows_detail_tiles(client):
+    text = client.get("/partials/weather", params={"lat": 25.59, "lon": 85.14, "name": "Patna"}).text
+    for label in ("Feels like", "Humidity", "Wind from", "UV index", "Visibility", "Pressure", "Sunrise", "Sunset"):
+        assert label in text
+    assert "05:42" in text and "17:05" in text
+    assert "Moderate · peak 7.9" in text
+    assert "10 km" in text and "1010 hPa" in text
+    assert "rotate(275deg)" in text  # wind from 95 deg blows toward 275 deg
+
+
+def test_weather_partial_imperial_units_in_tiles(client):
+    text = client.get("/partials/weather", params={"lat": 1, "lon": 2, "units": "imperial"}).text
+    assert "29.81 inHg" in text and "6.2 mi" in text
+
+
+def test_weather_partial_tolerates_missing_extras(client, api):
+    data = forecast_payload()
+    del data["hourly"]
+    del data["current"]["wind_direction_10m"]
+    api.forecast.respond(json=data)
+    r = client.get("/partials/weather", params={"lat": 1, "lon": 2})
+    assert r.status_code == 200 and "Visibility" in r.text and "—" in r.text
+
+
+def test_loading_state_markup(client):
+    assert 'id="weather-skeleton"' in client.get("/").text
+    html = client.get("/partials/suggest", params={"q": "Paris"}).text
+    assert 'hx-indicator="#weather-skeleton"' in html
+    weather = client.get("/partials/weather", params={"lat": 1, "lon": 2}).text
+    assert 'hx-indicator="#weather-skeleton"' in weather
+
+
+def test_footer_credits_open_meteo(client):
+    assert "Open-Meteo.com" in client.get("/").text
 
 
 def test_weather_partial_units_toggle_is_forwarded(client, api):

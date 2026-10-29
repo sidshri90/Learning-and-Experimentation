@@ -3,5 +3,5 @@
   <p class="notice" role="alert">{{ message }}</p>
   <button type="button" class="unit retry"
           hx-get="/partials/weather?{{ {'lat': lat, 'lon': lon, 'name': name, 'units': units}|urlencode }}"
-          hx-target="#weather">Try again</button>
+          hx-target="#weather" hx-indicator="#weather-skeleton">Try again</button>
 </article>

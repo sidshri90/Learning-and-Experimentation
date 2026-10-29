@@ -6,7 +6,7 @@
   <li id="opt-{{ loop.index0 }}" role="option" aria-selected="false"
       data-label="{{ loc.label }}"
       hx-get="/partials/weather?{{ {'lat': loc.latitude, 'lon': loc.longitude, 'name': loc.label}|urlencode }}"
-      hx-target="#weather">
+      hx-target="#weather" hx-indicator="#weather-skeleton">
     <span class="place">{{ loc.name }}</span>
     <span class="region">{% if loc.admin1 and loc.admin1|lower != loc.name|lower %}{{ loc.admin1 }}, {% endif %}{{ loc.country }}</span>
   </li>

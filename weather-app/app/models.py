@@ -34,7 +34,12 @@ class CurrentConditions(BaseModel):
     feels_like: int
     humidity: int
     wind_speed: int
+    wind_direction: int | None = None  # degrees the wind blows FROM
     wind_compass: str | None = None
+    pressure: float | None = None  # hPa (metric) or inHg (imperial)
+    visibility: float | None = None  # km (metric) or miles (imperial)
+    uv_index: float | None = None
+    uv_category: str | None = None
     description: str
     icon: str
     is_day: bool
@@ -56,6 +61,11 @@ class WeatherReport(BaseModel):
     units: Units
     temp_unit: str  # "°C" or "°F"
     wind_unit: str  # "km/h" or "mph"
+    pressure_unit: str  # "hPa" or "inHg"
+    visibility_unit: str  # "km" or "mi"
     observed_time: str  # local time at the location, "HH:MM"
+    sunrise: str | None = None  # today, local "HH:MM"
+    sunset: str | None = None
+    uv_max: float | None = None  # today's peak UV index
     current: CurrentConditions
     daily: list[DailyForecast]
